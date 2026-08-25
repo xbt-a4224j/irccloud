@@ -7,7 +7,7 @@ For all of this to work you need an IRCCloud account. If you're not familiar wit
 
 ## Navigation
 
-- <kbd>Ctrl</kbd>+<kbd>Space</kbd>: Select channel
+- <kbd>Ctrl</kbd>+<kbd>g</kbd> (or <kbd>Ctrl</kbd>+<kbd>Space</kbd>): Select channel
 - <kbd>Tab</kbd>: Auto-complete nicks
 - <kbd>Ctrl</kbd>+<kbd>b</kbd>: Switch to channel with most recent activity
 - <kbd>PgUp</kbd>/<kbd>PgDown</kbd>: Scroll in the channel buffer
@@ -16,6 +16,25 @@ For all of this to work you need an IRCCloud account. If you're not familiar wit
 - <kbd>Ctrl</kbd>+<kbd>k</kbd>: Delete from the cursor to the end of the line
 - <kbd>Ctrl</kbd>+<kbd>w</kbd>: Delete the last word before the cursor
 - <kbd>Ctrl</kbd>+<kbd>u</kbd>: Delete the entire line
+
+### Rebinding the channel picker
+
+<kbd>Ctrl</kbd>+<kbd>Space</kbd> is the historical binding, but macOS claims it for
+switching input sources, so it never reaches the client. <kbd>Ctrl</kbd>+<kbd>g</kbd>
+works by default and both are always accepted. To pick your own:
+
+```yaml
+channel_picker_key: ctrl+o
+```
+
+Forms like `ctrl+o`, `ctrl-o`, `c-o` and `^o` are all understood. Keys the
+terminal swallows (<kbd>Ctrl</kbd>+<kbd>c</kbd>, <kbd>Ctrl</kbd>+<kbd>z</kbd>,
+<kbd>Ctrl</kbd>+<kbd>s</kbd>, <kbd>Ctrl</kbd>+<kbd>q</kbd>, <kbd>Ctrl</kbd>+<kbd>d</kbd>),
+keys that are really other keys (<kbd>Ctrl</kbd>+<kbd>i</kbd> is Tab,
+<kbd>Ctrl</kbd>+<kbd>m</kbd> is Enter, <kbd>Ctrl</kbd>+<kbd>h</kbd> is Backspace,
+<kbd>Ctrl</kbd>+<kbd>j</kbd> is newline) and keys already bound by the client are
+rejected with an explanation, rather than being accepted as a binding that
+never fires.
 
 ## Configuration
 

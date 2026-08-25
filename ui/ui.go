@@ -5,6 +5,8 @@ import (
 	"github.com/rivo/tview"
 	"github.com/termoose/irccloud/config"
 	"github.com/termoose/irccloud/requests"
+	"log"
+	"strings"
 	"sync"
 )
 
@@ -19,6 +21,7 @@ type View struct {
 	Activity    *activityBar
 	lastChan    string
 	channelLock sync.Mutex
+	pickerKey   tcell.Key
 }
 
 func floatingModal(p tview.Primitive, width, height int) tview.Primitive {
@@ -40,9 +43,30 @@ func NewView(socket *requests.Connection, c *config.Data) *View {
 		config:    c,
 		Activity:  NewActivityBar(c.Triggers),
 		lastChan:  c.LastChan,
+		pickerKey: resolvePickerKey(c.ChannelPickerKey),
 	}
 
 	return view
+}
+
+// resolvePickerKey falls back to the default when the config is silent or
+// names a key that cannot be used, reporting why rather than leaving the
+// user with a binding that silently never fires.
+func resolvePickerKey(configured string) tcell.Key {
+	if strings.TrimSpace(configured) == "" {
+		key, _ := ParseKey(DefaultChannelPickerKey)
+		return key
+	}
+
+	key, err := ParseKey(configured)
+	if err != nil {
+		log.Printf("channel_picker_key: %v; falling back to %s", err, DefaultChannelPickerKey)
+
+		key, _ = ParseKey(DefaultChannelPickerKey)
+		return key
+	}
+
+	return key
 }
 
 func (v *View) GetCurrentChannel() string {
@@ -59,7 +83,7 @@ func (v *View) Start() {
 	})
 
 	v.app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		if event.Key() == tcell.KeyCtrlSpace {
+		if event.Key() == v.pickerKey || event.Key() == tcell.KeyCtrlSpace {
 			if v.basePages.HasPage("select_channel") {
 				v.hideChannelSelector()
 			} else {

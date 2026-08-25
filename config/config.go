@@ -26,6 +26,9 @@ type Data struct {
 	Triggers        []string `yaml:"triggers"`
 	LastChan        string   `yaml:"last_chan"`
 	OnlyMessages    bool     `yaml:"only_messages"`
+
+	// Empty means the built-in default. Ctrl+Space always works too.
+	ChannelPickerKey string `yaml:"channel_picker_key,omitempty"`
 }
 
 // IsPlaceholder reports whether the config still holds the generated
@@ -185,6 +188,11 @@ triggers: []
 
 # Set to true to hide join/part/quit noise from chat buffers.
 only_messages: false
+
+# Key that opens the channel picker. Ctrl+Space also always works, but
+# macOS claims it for switching input sources so it may never reach this
+# client. Accepts forms like "ctrl+g", "c-g" or "^g".
+channel_picker_key: ctrl+g
 `
 
 func writeDummyConfig(filename string) Data {
