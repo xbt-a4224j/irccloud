@@ -10,6 +10,8 @@ import (
 	"github.com/termoose/irccloud/events"
 	"github.com/termoose/irccloud/requests"
 	"github.com/termoose/irccloud/ui"
+	"io"
+	"log"
 	"os"
 )
 
@@ -51,6 +53,15 @@ func main() {
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
+	}
+
+	// tview owns the terminal from here on, so anything written to the
+	// standard logger would paint over the chat.
+	if logFile, logErr := config.OpenLog(configFile); logErr == nil {
+		log.SetOutput(logFile)
+		defer logFile.Close()
+	} else {
+		log.SetOutput(io.Discard)
 	}
 
 	view := ui.NewView(wsConn, &conf)

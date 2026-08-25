@@ -26,6 +26,7 @@ type oobInclude struct {
 
 // {"84415":{"4440297":1605131885388611}}}
 type BidToEid map[string]int
+
 // cid -> bid -> eid
 type Seen map[string]BidToEid
 
@@ -53,12 +54,15 @@ type eventData struct {
 	Data       []byte
 }
 
+// getTopicText reads a topic sent as a bare string. A single event
+// arriving in an unexpected shape must degrade that event, not terminate
+// the client, so an unparseable topic becomes an empty one.
 func getTopicText(e json.RawMessage) string {
 	var dst string
-	err := json.Unmarshal(e, &dst)
 
-	if err != nil {
-		log.Fatal(err)
+	if err := json.Unmarshal(e, &dst); err != nil {
+		log.Printf("ignoring malformed topic: %v", err)
+		return ""
 	}
 
 	return dst
@@ -77,12 +81,14 @@ func UserModeString(mode string) string {
 	}
 }
 
+// getTopicName reads a topic sent as an object. As with getTopicText, an
+// unexpected shape yields an empty topic rather than exiting.
 func getTopicName(e json.RawMessage) string {
 	dst := &topic{}
-	err := json.Unmarshal(e, dst)
 
-	if err != nil {
-		log.Fatal(err)
+	if err := json.Unmarshal(e, dst); err != nil {
+		log.Printf("ignoring malformed topic: %v", err)
+		return ""
 	}
 
 	return dst.Text
@@ -91,10 +97,10 @@ func getTopicName(e json.RawMessage) string {
 func parseBacklog(backlog *http.Response) []eventData {
 	backlogData := []eventData{}
 	decoder := json.NewDecoder(backlog.Body)
-	err := decoder.Decode(&backlogData)
-
-	if err != nil {
-		log.Fatal(err)
+	if err := decoder.Decode(&backlogData); err != nil {
+		// A bad backlog response loses history, not the session.
+		log.Printf("could not parse backlog: %v", err)
+		return nil
 	}
 
 	sort.Slice(backlogData, func(i, j int) bool {

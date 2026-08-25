@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -112,5 +113,62 @@ func TestResolveLastChannelPrefersStateThenConfig(t *testing.T) {
 				t.Errorf("ResolveLastChannel = %q, want %q", got, tc.want)
 			}
 		})
+	}
+}
+
+// Log output must not go to stderr while the TUI owns the terminal, so it
+// needs a file beside the config.
+func TestLogPathSitsBesideTheConfig(t *testing.T) {
+	dir := t.TempDir()
+	got := LogPath(filepath.Join(dir, "config.yaml"))
+
+	if filepath.Dir(got) != dir {
+		t.Errorf("LogPath = %q, want it inside %q", got, dir)
+	}
+	if filepath.Ext(got) != ".log" {
+		t.Errorf("LogPath = %q, want a .log file", got)
+	}
+}
+
+func TestOpenLogCreatesAnOwnerOnlyFile(t *testing.T) {
+	configFile := filepath.Join(t.TempDir(), "config.yaml")
+
+	f, err := OpenLog(configFile)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	defer f.Close()
+
+	info, err := os.Stat(LogPath(configFile))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if perm := info.Mode().Perm(); perm != 0600 {
+		t.Errorf("log mode = %04o, want 0600", perm)
+	}
+}
+
+// Logs are appended so a restart does not discard the previous session's
+// diagnostics.
+func TestOpenLogAppends(t *testing.T) {
+	configFile := filepath.Join(t.TempDir(), "config.yaml")
+
+	first, err := OpenLog(configFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	first.WriteString("one\n")
+	first.Close()
+
+	second, err := OpenLog(configFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	second.WriteString("two\n")
+	second.Close()
+
+	content := readFile(t, LogPath(configFile))
+	if !strings.Contains(content, "one") || !strings.Contains(content, "two") {
+		t.Errorf("log = %q, want both entries", content)
 	}
 }

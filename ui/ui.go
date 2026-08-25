@@ -97,7 +97,6 @@ func (v *View) Start() {
 	})
 
 	v.basePages.AddPage("channel", v.pages, true, true)
-	// v.basePages.AddPage("splash", floatingModal(newANSIView(), 100, 35),
 	// 	true, true)
 
 	v.layout.AddItem(v.basePages, 1, 0, 1, 1, 0, 0, true)
@@ -152,15 +151,6 @@ func newListView() *tview.List {
 		ShowSecondaryText(false).
 		SetSelectedFocusOnly(true).
 		SetMainTextColor(tcell.ColorLightSkyBlue)
-}
-
-func newANSIView() *tview.TextView {
-	art := readFile("test.ans")
-	return tview.NewTextView().
-		SetDynamicColors(true).
-		SetWrap(false).
-		//	SetText(art)
-		SetText(tview.TranslateANSI(art))
 }
 
 func newGrid() *tview.Grid {

@@ -68,3 +68,20 @@ func ResolveLastChannel(configFile string, data Data) string {
 
 	return data.LastChan
 }
+
+// LogPath is the diagnostics log beside the given config file.
+func LogPath(configFile string) string {
+	return filepath.Join(filepath.Dir(configFile), "irccloud.log")
+}
+
+// OpenLog opens the diagnostics log for appending. Log output must not go
+// to stderr while the TUI owns the terminal, or it paints over the chat.
+func OpenLog(configFile string) (*os.File, error) {
+	path := LogPath(configFile)
+
+	if err := os.MkdirAll(filepath.Dir(path), configDirMode); err != nil {
+		return nil, err
+	}
+
+	return os.OpenFile(path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, configFileMode)
+}
