@@ -21,18 +21,14 @@ func main() {
 	// background color
 	tview.Styles.PrimitiveBackgroundColor = tcell.ColorDefault
 
-	var conf config.Data
-
-	if isFlagSet("c") {
-		conf = config.ParseCustom(*configFilename)
-	} else {
-		conf = config.Parse()
-	}
+	configFile := configPath(*configFilename)
+	conf := config.ParseCustom(configFile)
+	conf.LastChan = config.ResolveLastChannel(configFile, conf)
 
 	if conf.IsPlaceholder() {
 		fmt.Fprintf(os.Stderr,
 			"No credentials configured.\nEdit %s and set your IRCCloud username and password, then run this again.\n",
-			configPath(*configFilename))
+			configFile)
 		os.Exit(1)
 	}
 
@@ -48,7 +44,7 @@ func main() {
 
 	defer func() {
 		current := view.GetCurrentChannel()
-		config.WriteLatestChannel(conf, current)
+		config.SaveLastChannel(configFile, current)
 		view.Stop()
 	}()
 
@@ -71,17 +67,6 @@ func main() {
 	}()
 
 	view.Start()
-}
-
-func isFlagSet(name string) bool {
-	found := false
-	flag.Visit(func(f *flag.Flag) {
-		if f.Name == name {
-			found = true
-		}
-	})
-
-	return found
 }
 
 // configPath reports the file the user needs to edit, which differs when

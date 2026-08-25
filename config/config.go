@@ -93,13 +93,6 @@ func getPaths() (string, string) {
 	return filepath.Join(confDir, "config.yaml"), confDir
 }
 
-func WriteLatestChannel(data Data, latest string) {
-	data.LastChan = latest
-	filename, _ := getPaths()
-
-	writeConfig(filename, data)
-}
-
 // writeConfig writes the config atomically and enforces owner-only
 // permissions. The mode passed to OpenFile applies only when a file is
 // created, so an existing loose file is fixed by writing a fresh temp file
