@@ -20,18 +20,26 @@ const (
 )
 
 type Data struct {
-	Username     string   `yaml:"username"`
-	Password     string   `yaml:"password"`
-	Triggers     []string `yaml:"triggers"`
-	LastChan     string   `yaml:"last_chan"`
-	OnlyMessages bool     `yaml:"only_messages"`
+	Username        string   `yaml:"username"`
+	Password        string   `yaml:"password"`
+	PasswordCommand string   `yaml:"password_command,omitempty"`
+	Triggers        []string `yaml:"triggers"`
+	LastChan        string   `yaml:"last_chan"`
+	OnlyMessages    bool     `yaml:"only_messages"`
 }
 
 // IsPlaceholder reports whether the config still holds the generated
 // skeleton values, meaning the user has not filled in their credentials.
 func (d Data) IsPlaceholder() bool {
-	return d.Username == "" || d.Password == "" ||
-		d.Username == placeholderUsername || d.Password == placeholderPassword
+	if d.Username == "" || d.Username == placeholderUsername {
+		return true
+	}
+
+	if d.PasswordCommand != "" {
+		return false
+	}
+
+	return d.Password == "" || d.Password == placeholderPassword
 }
 
 func ParseCustom(filename string) Data {
@@ -152,17 +160,75 @@ func writeConfig(filename string, data Data) {
 	}
 }
 
+// skeletonConfig is written as a literal rather than marshalled so it can
+// carry comments explaining password_command, which is the only way a user
+// will discover it.
+const skeletonConfig = `# IRCCloud terminal client configuration.
+# This file holds your credentials. Keep it mode 0600.
+
+username: ` + placeholderUsername + `
+
+# Your IRCCloud password, in cleartext. Prefer password_command below.
+password: ` + placeholderPassword + `
+
+# Instead of storing the password here, have it read from a secret manager
+# at startup. If set, this takes precedence over "password" above and the
+# password never touches disk. The command runs through the shell and its
+# stdout is used, with a trailing newline stripped. Examples:
+#
+#   password_command: security find-generic-password -s irccloud -w
+#   password_command: pass show irccloud
+#   password_command: op read "op://Personal/IRCCloud/password"
+
+# Words that trigger a notification when mentioned in a channel.
+triggers: []
+
+# Set to true to hide join/part/quit noise from chat buffers.
+only_messages: false
+`
+
 func writeDummyConfig(filename string) Data {
-	dummy := Data{
+	if err := writeSkeleton(filename); err != nil {
+		fmt.Printf("Could not write config to file %s: %v\n", filename, err)
+	}
+
+	return Data{
 		Username:     placeholderUsername,
 		Password:     placeholderPassword,
 		Triggers:     []string{},
 		LastChan:     "",
 		OnlyMessages: false,
 	}
+}
 
-	writeConfig(filename, dummy)
-	return dummy
+func writeSkeleton(filename string) error {
+	dir := filepath.Dir(filename)
+	if err := os.MkdirAll(dir, configDirMode); err != nil {
+		return err
+	}
+
+	tmp, err := os.CreateTemp(dir, ".config-*.yaml")
+	if err != nil {
+		return err
+	}
+	tmpName := tmp.Name()
+	defer func() { _ = os.Remove(tmpName) }()
+
+	if err := tmp.Chmod(configFileMode); err != nil {
+		tmp.Close()
+		return err
+	}
+
+	if _, err := tmp.WriteString(skeletonConfig); err != nil {
+		tmp.Close()
+		return err
+	}
+
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+
+	return os.Rename(tmpName, filename)
 }
 
 // DefaultPath is the config location used when -c is not supplied.

@@ -168,3 +168,17 @@ func TestIsPlaceholder(t *testing.T) {
 		})
 	}
 }
+
+func tempConfig(t *testing.T) string {
+	t.Helper()
+	return filepath.Join(t.TempDir(), "sub", "config.yaml")
+}
+
+func readFile(t *testing.T, name string) string {
+	t.Helper()
+	b, err := os.ReadFile(name)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(b)
+}

@@ -32,7 +32,14 @@ func main() {
 		os.Exit(1)
 	}
 
-	sessionData, err := requests.GetSessionToken(conf.Username, conf.Password)
+	password, err := conf.ResolvePassword()
+
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
+	sessionData, err := requests.GetSessionToken(conf.Username, password)
 
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

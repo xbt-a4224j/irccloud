@@ -26,6 +26,33 @@ There's also a `last_chan` field which will be the first channel you see when yo
 this is set to the channel you were viewing the last time you closed the client. This way you always get
 back to where you last left off!
 
+### Keeping your password out of the config file
+
+Storing your IRCCloud password in cleartext gives up your whole account if the
+file is ever read, since it is the account password rather than a scoped token.
+Set `password_command` instead and the client reads the secret from your
+password manager at startup:
+
+```yaml
+username: your_username_here/email
+password_command: security find-generic-password -s irccloud -w
+```
+
+The command runs through the shell, its stdout is used as the password with a
+trailing newline stripped, and stderr is left alone. It takes precedence over
+`password`, which you can then delete. Other examples:
+
+```yaml
+password_command: pass show irccloud
+password_command: op read "op://Personal/IRCCloud/password"
+password_command: gpg --quiet --decrypt ~/.irccloud-password.gpg
+```
+
+The config is created mode `0600` and the client warns on startup if it finds
+the file readable by anyone else. Your last viewed channel is kept in a
+separate `state.yaml` beside the config, so the credential file is written once
+when it is generated and never rewritten by the client.
+
 You can also set the `only_messages` flag to `true` if you don't want to see join/leave etc.
 messages in your chat buffers.
 
