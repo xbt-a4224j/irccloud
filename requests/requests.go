@@ -15,6 +15,7 @@ const sessionUrl = "https://www.irccloud.com/chat/login"
 
 type sessionReply struct {
 	Success bool   `json:"success"`
+	Message string `json:"message"`
 	Session string `json:"session"`
 	Uid     uint32 `json:"uid"`
 	APIHost string `json:"api_host"`
@@ -70,8 +71,7 @@ func GetSessionToken(user, pass string) (sessionReply, error) {
 	resp, err := httpClient.Do(httpRequest)
 
 	if err != nil {
-		log.Print(err)
-		return sessionReply{}, err
+		return sessionReply{}, fmt.Errorf("could not reach %s: %w", sessionUrl, err)
 	}
 
 	defer resp.Body.Close()
@@ -81,17 +81,39 @@ func GetSessionToken(user, pass string) (sessionReply, error) {
 func parseSession(response *http.Response) (sessionReply, error) {
 	decoder := json.NewDecoder(response.Body)
 	rep := &sessionReply{}
-	err := decoder.Decode(&rep)
 
-	if err != nil {
+	if err := decoder.Decode(&rep); err != nil {
+		if response.StatusCode < 200 || response.StatusCode > 299 {
+			return sessionReply{}, fmt.Errorf("login failed: server returned %s", response.Status)
+		}
+
 		return sessionReply{}, fmt.Errorf("error parsing auth reply: %w", err)
 	}
 
 	if !rep.Success {
-		return sessionReply{}, fmt.Errorf("invalid login: %w", err)
+		return sessionReply{}, fmt.Errorf("login rejected: %s", describeLoginFailure(rep.Message))
 	}
 
 	return *rep, nil
+}
+
+// describeLoginFailure turns IRCCloud'"'"'s terse reason codes into something
+// actionable. Unknown codes are passed through rather than swallowed.
+func describeLoginFailure(message string) string {
+	switch message {
+	case "":
+		return "no reason given by the server"
+	case "auth":
+		return "auth: incorrect email or password"
+	case "email_not_verified":
+		return "email_not_verified: check your inbox for a verification link"
+	case "rate_limited":
+		return "rate_limited: too many attempts, wait and try again"
+	case "otp_required", "totp_required":
+		return message + ": this account has two-factor auth enabled, which this client does not yet support"
+	default:
+		return message
+	}
 }
 
 func getFormtoken(client *http.Client) (string, error) {

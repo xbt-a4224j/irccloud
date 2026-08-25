@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"github.com/gdamore/tcell"
 	"github.com/rivo/tview"
 	"github.com/termoose/irccloud/config"
@@ -9,6 +10,7 @@ import (
 	"github.com/termoose/irccloud/requests"
 	"github.com/termoose/irccloud/ui"
 	"log"
+	"os"
 )
 
 func main() {
@@ -27,11 +29,18 @@ func main() {
 		conf = config.Parse()
 	}
 
+	if conf.IsPlaceholder() {
+		fmt.Fprintf(os.Stderr,
+			"No credentials configured.\nEdit %s and set your IRCCloud username and password, then run this again.\n",
+			configPath(*configFilename))
+		os.Exit(1)
+	}
+
 	sessionData, err := requests.GetSessionToken(conf.Username, conf.Password)
 
 	if err != nil {
-		log.Println(err)
-		return
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
 	}
 
 	wsConn := requests.NewConnection(sessionData)
@@ -73,4 +82,14 @@ func isFlagSet(name string) bool {
 	})
 
 	return found
+}
+
+// configPath reports the file the user needs to edit, which differs when
+// -c was passed.
+func configPath(custom string) string {
+	if custom != "" {
+		return custom
+	}
+
+	return config.DefaultPath()
 }
