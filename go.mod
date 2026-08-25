@@ -1,12 +1,21 @@
 module github.com/termoose/irccloud
 
-go 1.13
+go 1.27
 
 require (
 	github.com/gdamore/tcell v1.3.0
 	github.com/gorilla/websocket v1.4.1
-	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/rivo/tview v0.0.0-20200818120338-53d50e499bf9
 	github.com/sahilm/fuzzy v0.1.0
-	gopkg.in/yaml.v2 v2.2.4
+	gopkg.in/yaml.v2 v2.2.8
+)
+
+require (
+	github.com/gdamore/encoding v1.0.0 // indirect
+	github.com/kylelemons/godebug v1.1.0 // indirect
+	github.com/lucasb-eyer/go-colorful v1.0.3 // indirect
+	github.com/mattn/go-runewidth v0.0.9 // indirect
+	github.com/rivo/uniseg v0.1.0 // indirect
+	golang.org/x/sys v0.0.0-20200817155316-9781c653f443 // indirect
+	golang.org/x/text v0.3.2 // indirect
 )
