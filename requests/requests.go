@@ -22,6 +22,9 @@ type sessionReply struct {
 	WSHost  string `json:"websocket_host"`
 	WSPath  string `json:"websocket_path"`
 	URL     string `json:"url"`
+
+	// Overridden in tests so a plain-http test server can be dialled.
+	scheme string
 }
 
 type formtokenReply struct {

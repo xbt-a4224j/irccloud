@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"github.com/gdamore/tcell"
@@ -9,7 +10,6 @@ import (
 	"github.com/termoose/irccloud/events"
 	"github.com/termoose/irccloud/requests"
 	"github.com/termoose/irccloud/ui"
-	"log"
 	"os"
 )
 
@@ -46,8 +46,17 @@ func main() {
 		os.Exit(1)
 	}
 
-	wsConn := requests.NewConnection(sessionData)
+	wsConn, err := requests.NewConnection(sessionData)
+
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
 	view := ui.NewView(wsConn, &conf)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	defer func() {
 		current := view.GetCurrentChannel()
@@ -63,10 +72,14 @@ func main() {
 			msg, err := wsConn.ReadMessage()
 
 			if err != nil {
-				view.Stop()
-				log.Print(err)
+				// IRCCloud sessions are long lived, so a laptop sleeping
+				// or a wifi handoff must not end the session.
+				if reconnectErr := wsConn.Reconnect(ctx); reconnectErr != nil {
+					view.Stop()
+					return
+				}
 
-				return
+				continue
 			}
 
 			eventHandler.Enqueue(msg)
